@@ -31,21 +31,31 @@ const listData = computed(() => props.list)
 const filteredList = ref([...listData.value])
 const listItems = computed(() => {
   let adaptedListItems = []
-  if (isTimeShedule.value) adaptedListItems = listData.value
-  else if (isLineStops.value) {
-    const getUniqueStops = (stops) => {
-      const stopsSet = new Set()
-      const uniqueStops = stops.filter(({ stop }) => !stopsSet.has(stop) && stopsSet.add(stop))
+  const getUniqueStops = (stops) => {
+    const stopsSet = new Set()
+    const uniqueStops = stops.filter(({ stop, order }) => {
+      const uniqueKey = `${stop}-${order}`
+        if (!stopsSet.has(uniqueKey)) {
+          stopsSet.add(uniqueKey)
+          return true
+        }
+    return false
+})
 
     return uniqueStops
   }
-
+  if (isTimeShedule.value) adaptedListItems = listData.value
+  else if (isLineStops.value) {
   const stopsWithinLine = getUniqueStops(listData.value)
   
   sort.value
     ? adaptedListItems = stopsWithinLine.sort((prev, next) => prev.order - next.order)
-    : adaptedListItems = stopsWithinLine.sort((prev, next) => prev.stop - next.stop)
-  } else adaptedListItems = filteredList.value
+    : adaptedListItems = stopsWithinLine.sort((prev, next) => prev.stop.localeCompare(next.stop))
+  } else {
+    sort.value
+      ? adaptedListItems = getUniqueStops(filteredList.value).sort((prev, next) => prev.order - next.order)
+      : adaptedListItems = getUniqueStops(filteredList.value).sort((prev, next) => prev.stop.localeCompare(next.stop))
+  }
 
   return adaptedListItems
 })
